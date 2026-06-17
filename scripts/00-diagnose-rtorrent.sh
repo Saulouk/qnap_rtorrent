@@ -22,10 +22,10 @@ session.path.set = ${ENTWARE_SESSION}
 directory.default.set = ${ENTWARE_DOWNLOADS}
 network.scgi.open_local = ${SCGI_SOCKET}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${SCGI_SOCKET}"
-network.port_range.set = 42001-42099
 EOF
 
 rm -f "$SCGI_SOCKET"
+: > "${ENTWARE_LOGS}/diagnose.out"
 log "Starting rtorrent for 8 seconds, then testing SCGI before stop..."
 echo "---"
 /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" >> "${ENTWARE_LOGS}/diagnose.out" 2>&1 &
