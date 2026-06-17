@@ -62,7 +62,7 @@ scgi_test() {
     "$php_bin" -r "
 \$target = '${target}';
 \$body = '<?xml version=\"1.0\"?><methodCall><methodName>system.client_version</methodName><params></params></methodCall>';
-\$headers = 'CONTENT_LENGTH\0'.strlen(\$body).'\0SCGI\01\0REQUEST_METHOD\0POST\0REQUEST_URI\0/RPC2\0';
+\$headers = \"CONTENT_LENGTH\\0\".strlen(\$body).\"\\0SCGI\\0\".\"1\\0REQUEST_METHOD\\0POST\\0REQUEST_URI\\0/RPC2\\0\";
 \$req = strlen(\$headers).':'.\$headers.','.\$body;
 if (strpos(\$target, '/') !== false) {
     \$s = @stream_socket_client('unix://'.\$target, \$errno, \$errstr, 5);
