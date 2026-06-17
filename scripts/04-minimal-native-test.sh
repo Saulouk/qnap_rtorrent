@@ -18,6 +18,7 @@ install_pkg dtach
 [ -x /opt/bin/dtach ] || die "dtach is required to give rtorrent a pseudo-terminal"
 
 mkdir -p "$ENTWARE_SESSION" "$ENTWARE_DOWNLOADS" "$ENTWARE_LOGS"
+mkdir -p "$ENTWARE_WATCH/load" "$ENTWARE_WATCH/start"
 rm -f "$SCGI_SOCKET" "$DTACH_SOCKET"
 
 # rtorrent 0.15 syntax; unix socket is more reliable than TCP on QNAP
@@ -27,6 +28,8 @@ session.path.set = ${ENTWARE_SESSION}
 directory.default.set = ${ENTWARE_DOWNLOADS}
 network.scgi.open_local = ${SCGI_SOCKET}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${SCGI_SOCKET}"
+schedule2 = watch_load, 10, 10, "load.normal=${ENTWARE_WATCH}/load/*.torrent"
+schedule2 = watch_start, 10, 10, "load.start=${ENTWARE_WATCH}/start/*.torrent"
 EOF
 
 PIDFILE="${ENTWARE_ROOT}/rtorrent.pid"

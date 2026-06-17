@@ -7,17 +7,18 @@ set -e
 log "=== Step 6: Batch import old torrents ==="
 
 BATCH_SIZE="${1:-10}"
+SOURCE_DIR="${2:-$OLD_SESSION}"
 IMPORT_DIR="${ENTWARE_ROOT}/import-staging"
 IMPORT_LOG="${ENTWARE_LOGS}/import.log"
-mkdir -p "$IMPORT_DIR" "$ENTWARE_LOGS"
+mkdir -p "$IMPORT_DIR" "$ENTWARE_LOGS" "$ENTWARE_WATCH/start"
 
-[ -d "$OLD_SESSION" ] || die "Old session not found: $OLD_SESSION"
+[ -d "$SOURCE_DIR" ] || die "Source directory not found: $SOURCE_DIR"
 [ -x /opt/bin/rtorrent ] || die "Entware rtorrent not installed"
 
 ensure_entware_path
 
 # Ensure rtorrent running
-if [ ! -f "${ENTWARE_ROOT}/rtorrent.pid" ] || ! ps -p "$(cat "${ENTWARE_ROOT}/rtorrent.pid")" >/dev/null 2>&1; then
+if [ ! -f "${ENTWARE_ROOT}/rtorrent.pid" ] || ! /bin/ps -ef | grep -v grep | grep -q "/opt/bin/rtorrent"; then
     log "Starting rtorrent for import..."
     "$(dirname "$0")/04-minimal-native-test.sh"
 fi
@@ -43,10 +44,12 @@ apply_path_map() {
 
 import_via_xmlrpc() {
   torrent_path="$1"
+  method="${2:-load.start}"
   /opt/bin/php8-cli -r "
 \$socket = '${SCGI_SOCKET}';
 \$path = '${torrent_path}';
-\$body = '<?xml version=\"1.0\"?><methodCall><methodName>load_verbose</methodName><params><param><value><string>'.htmlspecialchars(\$path, ENT_XML1).'</string></value></param></params></methodCall>';
+\$method = '${method}';
+\$body = '<?xml version=\"1.0\"?><methodCall><methodName>'.\$method.'</methodName><params><param><value><string>'.htmlspecialchars(\$path, ENT_XML1).'</string></value></param></params></methodCall>';
 \$headers = \"CONTENT_LENGTH\\0\".strlen(\$body).\"\\0SCGI\\0\".\"1\\0REQUEST_METHOD\\0POST\\0REQUEST_URI\\0/RPC2\\0\";
 \$req = strlen(\$headers).':'.\$headers.','.\$body;
 \$s = stream_socket_client('unix://'.\$socket, \$e, \$es, 5);
@@ -61,17 +64,21 @@ count=0
 imported=0
 failed=0
 
-log "Importing up to $BATCH_SIZE torrents from $OLD_SESSION"
+log "Importing up to $BATCH_SIZE torrents"
+log "Source directory: $SOURCE_DIR"
 log "Edit $PATH_MAP for path remapping before larger imports"
 
-for meta in "$OLD_SESSION"/*; do
+for meta in "$SOURCE_DIR"/*; do
     [ -f "$meta" ] || continue
     base="$(basename "$meta")"
     case "$base" in
         *.lock|*.pid|ipfilter*|rtorrent.*|*.dat|*.gz|*.response) continue ;;
     esac
-    # 40-char hex = rtorrent session metadata
-    echo "$base" | grep -qE '^[0-9a-fA-F]{40}$' || continue
+    # Accept normal .torrent files and rtorrent 40-char session metadata.
+    case "$base" in
+        *.torrent) ;;
+        *) echo "$base" | grep -qE '^[0-9a-fA-F]{40}$' || continue ;;
+    esac
 
     count=$((count + 1))
     [ "$count" -le "$BATCH_SIZE" ] || break
@@ -79,8 +86,8 @@ for meta in "$OLD_SESSION"/*; do
     staged="${IMPORT_DIR}/${base}"
     apply_path_map "$meta" "$staged"
 
-    # Also try companion .torrent if exists
-    dot_torrent="${OLD_SESSION}/${base}.torrent"
+    # Also try companion .torrent if this is a raw rtorrent session metadata file.
+    dot_torrent="${SOURCE_DIR}/${base}.torrent"
     load_file="$staged"
     if [ -f "$dot_torrent" ]; then
         staged_t="${IMPORT_DIR}/${base}.torrent"
@@ -89,14 +96,15 @@ for meta in "$OLD_SESSION"/*; do
     fi
 
     log "Import [$count/$BATCH_SIZE]: $base"
-    if import_via_xmlrpc "$load_file"; then
+    cp "$load_file" "${ENTWARE_WATCH}/start/" 2>/dev/null || true
+    if import_via_xmlrpc "$load_file" "load.start"; then
         imported=$((imported + 1))
         echo "$(date) OK $base" >> "$IMPORT_LOG"
     else
-        # Fallback: copy session file directly into new session (rtorrent will load on restart)
-        cp "$staged" "${ENTWARE_SESSION}/${base}" 2>/dev/null && {
+        # Fallback: copy into watch/start; rtorrent will pick it up on its schedule.
+        cp "$load_file" "${ENTWARE_WATCH}/start/" 2>/dev/null && {
             imported=$((imported + 1))
-            echo "$(date) COPIED $base" >> "$IMPORT_LOG"
+            echo "$(date) WATCH $base" >> "$IMPORT_LOG"
         } || {
             failed=$((failed + 1))
             echo "$(date) FAIL $base" >> "$IMPORT_LOG"
@@ -105,14 +113,6 @@ for meta in "$OLD_SESSION"/*; do
     fi
 done
 
-# Restart rtorrent to pick up copied session files
-if [ "$imported" -gt 0 ]; then
-    log "Restarting rtorrent to load session..."
-    kill "$(cat "${ENTWARE_ROOT}/rtorrent.pid")" 2>/dev/null || true
-    sleep 2
-    "$(dirname "$0")/04-minimal-native-test.sh"
-fi
-
 log "Import batch done: imported=$imported failed=$failed (log: $IMPORT_LOG)"
-log "Re-run with larger batch: $0 50"
+log "Re-run with larger batch: $0 50 \"$SOURCE_DIR\""
 log "Step 6 complete."
