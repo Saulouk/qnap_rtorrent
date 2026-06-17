@@ -2,7 +2,7 @@
 # Master runner - executes recovery steps in order
 
 set -e
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT/scripts"
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
