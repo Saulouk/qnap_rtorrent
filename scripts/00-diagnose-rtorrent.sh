@@ -22,15 +22,20 @@ session.path.set = ${ENTWARE_SESSION}
 directory.default.set = ${ENTWARE_DOWNLOADS}
 network.scgi.open_local = ${SCGI_SOCKET}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${SCGI_SOCKET}"
+network.port_range.set = 42001-42099
 EOF
 
 rm -f "$SCGI_SOCKET"
-log "Running rtorrent in foreground for 8 seconds (all output below):"
+log "Starting rtorrent for 8 seconds, then testing SCGI before stop..."
 echo "---"
-( /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" 2>&1 & echo $! > /tmp/rtdiag.pid
-  sleep 8
-  kill "$(cat /tmp/rtdiag.pid)" 2>/dev/null || true
-) | tee "${ENTWARE_LOGS}/diagnose.out"
+/opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" >> "${ENTWARE_LOGS}/diagnose.out" 2>&1 &
+diag_pid=$!
+sleep 5
+ls -la "$SCGI_SOCKET" 2>/dev/null || true
+scgi_test "$SCGI_SOCKET" 2>/dev/null | head -5 || true
+kill -TERM "$diag_pid" 2>/dev/null || true
+sleep 2
+tail -20 "${ENTWARE_LOGS}/diagnose.out" 2>/dev/null || true
 echo "---"
 echo ""
 ls -la "$SCGI_SOCKET" 2>/dev/null || log "Socket not created: $SCGI_SOCKET"

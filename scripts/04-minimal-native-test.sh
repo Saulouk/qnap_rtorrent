@@ -20,12 +20,12 @@ rm -f "$SCGI_SOCKET"
 
 # rtorrent 0.15 syntax; unix socket is more reliable than TCP on QNAP
 cat > "$ENTWARE_RUT_CONF" <<EOF
-# Entware rtorrent 0.15 - QTS5 recovery
+# Entware rtorrent 0.15 - QTS5 recovery (minimal valid config)
 session.path.set = ${ENTWARE_SESSION}
 directory.default.set = ${ENTWARE_DOWNLOADS}
 network.scgi.open_local = ${SCGI_SOCKET}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${SCGI_SOCKET}"
-network.listen.port_range.set = 42001-42099
+network.port_range.set = 42001-42099
 EOF
 
 PIDFILE="${ENTWARE_ROOT}/rtorrent.pid"
