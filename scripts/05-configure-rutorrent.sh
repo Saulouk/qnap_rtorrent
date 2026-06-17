@@ -118,7 +118,7 @@ fastcgi.server = (
     "bin-path" => "${PHP_CGI}",
     "socket" => "/tmp/entware-php.sock",
     "max-procs" => 2,
-    "broken-scriptfilename" => "allow"
+    "broken-scriptfilename" => "enable"
   ))
 )
 scgi.server = (
@@ -149,8 +149,12 @@ fi
 echo $! > "$LIGHTTPD_PID"
 sleep 3
 
+if ! /bin/ps -ef | grep -v grep | grep -q "$LIGHTTPD_BIN"; then
+    die "lighttpd failed to start - inspect ${LIGHTTPD_CONF}"
+fi
+
 log "Testing getplugins.php..."
-curl -s --max-time 10 "http://127.0.0.1:${WEB_PORT}/rutorrent/php/getplugins.php" | head -5 || true
+curl -i --max-time 10 "http://127.0.0.1:${WEB_PORT}/rutorrent/php/getplugins.php" | head -20 || true
 
 log "ruTorrent URL: http://$(hostname -i 2>/dev/null | awk '{print $1}'):${WEB_PORT}/rutorrent/"
 log "Step 5 complete."
