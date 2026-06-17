@@ -26,7 +26,6 @@ directory.default.set = ${ENTWARE_DOWNLOADS}
 network.scgi.open_local = ${SCGI_SOCKET}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${SCGI_SOCKET}"
 network.listen.port_range.set = 42001-42099
-dht.mode.set = disable
 EOF
 
 PIDFILE="${ENTWARE_ROOT}/rtorrent.pid"
@@ -40,8 +39,16 @@ sleep 1
 
 log "Preflight: run rtorrent in foreground briefly to capture config errors..."
 : > "${ENTWARE_LOGS}/rtorrent.err"
-timeout 3 /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" \
-    >> "${ENTWARE_LOGS}/rtorrent.out" 2>> "${ENTWARE_LOGS}/rtorrent.err" || true
+if command -v timeout >/dev/null 2>&1; then
+    timeout 3 /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" \
+        >> "${ENTWARE_LOGS}/rtorrent.out" 2>> "${ENTWARE_LOGS}/rtorrent.err" || true
+else
+    /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" \
+        >> "${ENTWARE_LOGS}/rtorrent.out" 2>> "${ENTWARE_LOGS}/rtorrent.err" &
+    _pf=$!
+    sleep 3
+    kill "$_pf" 2>/dev/null || true
+fi
 
 if grep -qiE 'error|failed|parse' "${ENTWARE_LOGS}/rtorrent.err" 2>/dev/null; then
     log "Config/runtime messages:"
