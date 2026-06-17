@@ -23,6 +23,7 @@ Or run steps individually:
 | 5 | `05-configure-rutorrent.sh` | Web UI on port 6010 |
 | 6 | `06-batch-import.sh` | Import old torrents with path mapping |
 | 7 | `07-disable-old-qpkg.sh` | Stop broken rtorrent-Pro package |
+| optional | `08-find-torrent-data.sh` | Locate old `.torrent`/session files if import finds none |
 
 ## Ports
 
@@ -43,3 +44,15 @@ Or run steps individually:
 ## Path mapping
 
 Edit `path-map.conf` before import if download paths changed between QTS 4 and 5.
+
+## If import finds zero torrents
+
+Run:
+
+```sh
+sh scripts/08-find-torrent-data.sh
+```
+
+Then inspect the generated `/share/Public/rtorrent-debug-backup/torrent-data-search-*.txt`
+report. The old rtorrent-Pro QPKG may have stored the real `.torrent` or session
+metadata outside `/share/Rdownload/session.disabled-debug`.
