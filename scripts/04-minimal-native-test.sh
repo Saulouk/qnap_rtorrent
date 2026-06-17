@@ -48,10 +48,11 @@ log "Starting rtorrent under dtach (SCGI socket ${SCGI_SOCKET})..."
     >> "${ENTWARE_LOGS}/rtorrent.out" 2>> "${ENTWARE_LOGS}/rtorrent.err" || true
 
 sleep 6
-pid=$(/bin/ps -ef | awk '/\/opt\/bin\/rtorrent/ && /entware\/rtorrent.conf/ {print $1; exit}')
+pid=$(pidof rtorrent 2>/dev/null | awk '{print $1}')
+[ -n "$pid" ] || pid=$(/bin/ps -ef | awk '/\/opt\/bin\/rtorrent/ && /entware\/rtorrent.conf/ {print $1; exit}')
 [ -n "$pid" ] && echo "$pid" > "$PIDFILE"
 
-if [ -z "$pid" ] || ! /bin/ps -p "$pid" >/dev/null 2>&1; then
+if [ -z "$pid" ] && [ ! -S "$SCGI_SOCKET" ]; then
     log "rtorrent exited. stderr:"
     tail -40 "${ENTWARE_LOGS}/rtorrent.err" 2>/dev/null || true
     log "stdout:"
