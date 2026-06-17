@@ -43,13 +43,13 @@ apply_path_map() {
 
 import_via_xmlrpc() {
   torrent_path="$1"
-  /opt/bin/php -r "
-\$port = ${SCGI_PORT};
+  /opt/bin/php8-cli -r "
+\$socket = '${SCGI_SOCKET}';
 \$path = '${torrent_path}';
 \$body = '<?xml version=\"1.0\"?><methodCall><methodName>load_verbose</methodName><params><param><value><string>'.htmlspecialchars(\$path, ENT_XML1).'</string></value></param></params></methodCall>';
 \$headers = 'CONTENT_LENGTH\0'.strlen(\$body).'\0SCGI\01\0REQUEST_METHOD\0POST\0REQUEST_URI\0/RPC2\0';
 \$req = strlen(\$headers).':'.\$headers.','.\$body;
-\$s = fsockopen('127.0.0.1', \$port, \$e, \$es, 5);
+\$s = stream_socket_client('unix://'.\$socket, \$e, \$es, 5);
 if (!\$s) exit(1);
 fwrite(\$s, \$req);
 echo stream_get_contents(\$s);

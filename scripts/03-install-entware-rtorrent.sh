@@ -22,26 +22,38 @@ install_pkg() {
     fi
 }
 
-for pkg in rtorrent lighttpd spawn-fcgi; do
+# Core torrent + RPC (SCGI/XMLRPC)
+for pkg in rtorrent rtorrent-rpc xmlrpc-c-server; do
     install_pkg "$pkg" || true
 done
 
-for pkg in php8 php83 php82 php81 php80 php7 php; do
+# Web stack
+for pkg in lighttpd lighttpd-mod-fastcgi lighttpd-mod-scgi spawn-fcgi; do
+    install_pkg "$pkg" || true
+done
+
+# PHP 8 for ruTorrent (Entware naming: php8-cli, php8-cgi, not php8-mod-cli)
+for pkg in php8 php8-cli php8-cgi php8-fastcgi \
+    php8-mod-xml php8-mod-mbstring php8-mod-json php8-mod-session php8-mod-ctype; do
     if /opt/bin/opkg list 2>/dev/null | grep -q "^${pkg} "; then
         install_pkg "$pkg" || true
-        install_pkg "${pkg}-mod-cli" 2>/dev/null || true
-        install_pkg "${pkg}-mod-cgi" 2>/dev/null || true
-        install_pkg "${pkg}-mod-fastcgi" 2>/dev/null || true
-        break
     fi
 done
 
-install_pkg rutorrent 2>/dev/null || log "rutorrent package not in feed (will use QPKG UI copy)"
+ensure_php_symlinks
+
+# ruTorrent web UI
+if /opt/bin/opkg list-installed 2>/dev/null | grep -q '^rutorrent '; then
+    log "Already installed: rutorrent"
+else
+    log "Installing: rutorrent"
+    /opt/bin/opkg install rutorrent || log "WARN: rutorrent install had errors (may still be usable)"
+fi
 
 [ -x /opt/bin/rtorrent ] || die "rtorrent binary not found after install"
 
 mkdir -p "$ENTWARE_SESSION" "$ENTWARE_DOWNLOADS" "$ENTWARE_WATCH/load" "$ENTWARE_WATCH/start" "$ENTWARE_LOGS"
 chmod -R 777 "$ENTWARE_ROOT" 2>/dev/null || true
 
-log "Installed: $(/opt/bin/rtorrent -h 2>&1 | head -1 || /opt/bin/rtorrent --version 2>&1 | head -1)"
+log "Installed: $(/opt/bin/rtorrent -h 2>&1 | head -1 || true)"
 log "Step 3 complete."

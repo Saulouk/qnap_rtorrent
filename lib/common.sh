@@ -21,6 +21,7 @@ ENTWARE_DOWNLOADS="${ENTWARE_ROOT}/downloads"
 ENTWARE_WATCH="${ENTWARE_ROOT}/watch"
 ENTWARE_LOGS="${ENTWARE_ROOT}/logs"
 ENTWARE_RUT_CONF="${ENTWARE_ROOT}/rtorrent.conf"
+SCGI_SOCKET="${ENTWARE_ROOT}/rtorrent.sock"
 SCGI_PORT=19010
 WEB_PORT=6010
 PATH_MAP="${RECOVERY_ROOT}/path-map.conf"
@@ -51,17 +52,22 @@ rtorrent_bin() {
 }
 
 scgi_test() {
-    port="${1:-$SCGI_PORT}"
-    php_bin="/opt/bin/php"
+    target="${1:-$SCGI_SOCKET}"
+    php_bin="/opt/bin/php8-cli"
+    [ -x "$php_bin" ] || php_bin="/opt/bin/php"
     [ -x "$php_bin" ] || php_bin="/share/CACHEDEV1_DATA/.qpkg/rtorrent/bin/php"
     [ -x "$php_bin" ] || die "php not found for SCGI test"
 
     "$php_bin" -r "
-\$port = intval('${port}');
+\$target = '${target}';
 \$body = '<?xml version=\"1.0\"?><methodCall><methodName>system.client_version</methodName><params></params></methodCall>';
 \$headers = 'CONTENT_LENGTH\0'.strlen(\$body).'\0SCGI\01\0REQUEST_METHOD\0POST\0REQUEST_URI\0/RPC2\0';
 \$req = strlen(\$headers).':'.\$headers.','.\$body;
-\$s = @fsockopen('127.0.0.1', \$port, \$errno, \$errstr, 3);
+if (strpos(\$target, '/') !== false) {
+    \$s = @stream_socket_client('unix://'.\$target, \$errno, \$errstr, 5);
+} else {
+    \$s = @fsockopen('127.0.0.1', intval(\$target), \$errno, \$errstr, 5);
+}
 if (!\$s) { echo \"CONNECT_FAILED:\$errno:\$errstr\n\"; exit(1); }
 stream_set_timeout(\$s, 5);
 fwrite(\$s, \$req);
@@ -74,4 +80,10 @@ while (!feof(\$s)) {
 }
 echo \$out ? \$out : \"NO_RESPONSE\n\";
 " 2>/dev/null
+}
+
+ensure_php_symlinks() {
+    [ -x /opt/bin/php8-cgi ] && ln -sfn php8-cgi /opt/bin/php-cgi 2>/dev/null || true
+    [ -x /opt/bin/php8-cgi ] && ln -sfn php8-cgi /opt/bin/php-fcgi 2>/dev/null || true
+    [ -x /opt/bin/php8-cli ] && ln -sfn php8-cli /opt/bin/php 2>/dev/null || true
 }

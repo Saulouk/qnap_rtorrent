@@ -8,12 +8,14 @@ log "=== Step 5: Configure ruTorrent ==="
 
 has_entware || die "Entware required"
 ensure_entware_path
+ensure_php_symlinks
 [ -f "${BACKUP_ROOT}/entware-scgi-test.ok" ] || log "WARN: run 04-minimal-native-test.sh first"
 
 # Locate ruTorrent web root
 RUT_WEB=""
 for candidate in \
     /opt/share/rutorrent \
+    /opt/www/rutorrent \
     /opt/share/www/rutorrent \
     /opt/var/www/rutorrent \
     /opt/www/rutorrent \
@@ -53,18 +55,18 @@ if [ -f "${RUT_CONF_DIR}/config.php" ]; then
     cp "${RUT_CONF_DIR}/config.php" "${BACKUP_ROOT}/rutorrent-config.php.bak.$(date +%s)"
 fi
 
-cat > "${RUT_CONF_DIR}/config.php" <<'PHPEOF'
+cat > "${RUT_CONF_DIR}/config.php" <<PHPEOF
 <?php
-	$log_file = '/share/Rdownload/entware/logs/ui-rtorrent-error.log';
-	$scgi_port = 19010;
-	$scgi_host = "127.0.0.1";
-	$XMLRPCMountPoint = "/RPC2";
-	$localhosts = array("127.0.0.1", "::1", "localhost", "192.168.1.2");
-	$profilePath = '/share/Rdownload/entware/settings';
-	$profileMask = 0777;
-	$tempDirectory = '/share/Rdownload/entware/tmp/';
-	$canUseXSendFile = false;
-	$locale = "UTF8";
+	\$log_file = '/share/Rdownload/entware/logs/ui-rtorrent-error.log';
+	\$scgi_port = 0;
+	\$scgi_host = "unix://${SCGI_SOCKET}";
+	\$XMLRPCMountPoint = "/RPC2";
+	\$localhosts = array("127.0.0.1", "::1", "localhost", "192.168.1.2");
+	\$profilePath = '/share/Rdownload/entware/settings';
+	\$profileMask = 0777;
+	\$tempDirectory = '/share/Rdownload/entware/tmp/';
+	\$canUseXSendFile = false;
+	\$locale = "UTF8";
 PHPEOF
 
 mkdir -p /share/Rdownload/entware/settings /share/Rdownload/entware/tmp
@@ -121,8 +123,7 @@ fastcgi.server = (
 )
 scgi.server = (
   "/RPC2" => ((
-    "host" => "127.0.0.1",
-    "port" => ${SCGI_PORT},
+    "socket" => "${SCGI_SOCKET}",
     "check-local" => "disable"
   ))
 )
