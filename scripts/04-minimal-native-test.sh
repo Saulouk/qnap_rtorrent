@@ -14,9 +14,11 @@ install_pkg() {
     /opt/bin/opkg list-installed 2>/dev/null | grep -q "^$1 " || /opt/bin/opkg install "$1" 2>/dev/null || true
 }
 install_pkg rtorrent-rpc
+install_pkg dtach
+[ -x /opt/bin/dtach ] || die "dtach is required to give rtorrent a pseudo-terminal"
 
 mkdir -p "$ENTWARE_SESSION" "$ENTWARE_DOWNLOADS" "$ENTWARE_LOGS"
-rm -f "$SCGI_SOCKET"
+rm -f "$SCGI_SOCKET" "$DTACH_SOCKET"
 
 # rtorrent 0.15 syntax; unix socket is more reliable than TCP on QNAP
 cat > "$ENTWARE_RUT_CONF" <<EOF
@@ -34,19 +36,22 @@ if [ -f "$PIDFILE" ]; then
     sleep 2
 fi
 pkill -x rtorrent 2>/dev/null || true
+pkill -x dtach 2>/dev/null || true
 sleep 1
 
 : > "${ENTWARE_LOGS}/rtorrent.err"
 : > "${ENTWARE_LOGS}/rtorrent.out"
 
-log "Starting rtorrent (SCGI socket ${SCGI_SOCKET})..."
-/opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" \
-    >> "${ENTWARE_LOGS}/rtorrent.out" 2>> "${ENTWARE_LOGS}/rtorrent.err" &
+export TERM="${TERM:-vt100}"
+log "Starting rtorrent under dtach (SCGI socket ${SCGI_SOCKET})..."
+/opt/bin/dtach -n "$DTACH_SOCKET" /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" \
+    >> "${ENTWARE_LOGS}/rtorrent.out" 2>> "${ENTWARE_LOGS}/rtorrent.err" || true
 
-echo $! > "$PIDFILE"
 sleep 6
+pid=$(/bin/ps -ef | awk '/\/opt\/bin\/rtorrent/ && /entware\/rtorrent.conf/ {print $1; exit}')
+[ -n "$pid" ] && echo "$pid" > "$PIDFILE"
 
-if ! /bin/ps -p "$(cat "$PIDFILE")" >/dev/null 2>&1; then
+if [ -z "$pid" ] || ! /bin/ps -p "$pid" >/dev/null 2>&1; then
     log "rtorrent exited. stderr:"
     tail -40 "${ENTWARE_LOGS}/rtorrent.err" 2>/dev/null || true
     log "stdout:"

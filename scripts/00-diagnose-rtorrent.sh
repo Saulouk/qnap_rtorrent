@@ -6,6 +6,7 @@ set -e
 
 ensure_entware_path
 mkdir -p "$ENTWARE_SESSION" "$ENTWARE_DOWNLOADS" "$ENTWARE_LOGS"
+opkg list-installed 2>/dev/null | grep -q '^dtach ' || opkg install dtach 2>/dev/null || true
 
 log "=== rtorrent diagnostic ==="
 log "Binary: $(which rtorrent)"
@@ -24,16 +25,17 @@ network.scgi.open_local = ${SCGI_SOCKET}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${SCGI_SOCKET}"
 EOF
 
-rm -f "$SCGI_SOCKET"
+rm -f "$SCGI_SOCKET" "$DTACH_SOCKET"
 : > "${ENTWARE_LOGS}/diagnose.out"
 log "Starting rtorrent for 8 seconds, then testing SCGI before stop..."
 echo "---"
-/opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" >> "${ENTWARE_LOGS}/diagnose.out" 2>&1 &
-diag_pid=$!
+export TERM="${TERM:-vt100}"
+/opt/bin/dtach -n "$DTACH_SOCKET" /opt/bin/rtorrent -n -o "import=${ENTWARE_RUT_CONF}" >> "${ENTWARE_LOGS}/diagnose.out" 2>&1 || true
 sleep 5
 ls -la "$SCGI_SOCKET" 2>/dev/null || true
 scgi_test "$SCGI_SOCKET" 2>/dev/null | head -5 || true
-kill -TERM "$diag_pid" 2>/dev/null || true
+pkill -x rtorrent 2>/dev/null || true
+pkill -x dtach 2>/dev/null || true
 sleep 2
 tail -20 "${ENTWARE_LOGS}/diagnose.out" 2>/dev/null || true
 echo "---"

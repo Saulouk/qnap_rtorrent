@@ -22,8 +22,8 @@ install_pkg() {
     fi
 }
 
-# Core torrent + RPC (SCGI/XMLRPC)
-for pkg in rtorrent rtorrent-rpc xmlrpc-c-server; do
+# Core torrent + RPC (SCGI/XMLRPC). dtach provides the pty rtorrent expects.
+for pkg in rtorrent rtorrent-rpc xmlrpc-c-server dtach; do
     install_pkg "$pkg" || true
 done
 
