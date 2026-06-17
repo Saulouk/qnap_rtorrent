@@ -1,0 +1,4 @@
+*.log
+*.pid
+*.ok
+.DS_Store
