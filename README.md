@@ -26,6 +26,7 @@ Or run steps individually:
 | optional | `08-find-torrent-data.sh` | Locate old `.torrent`/session files if import finds none |
 | optional | `09-retarget-by-existing-data.sh` | Point imported torrents at existing NAS data |
 | optional | `10-rewrite-directory-prefix.sh` | Replace temporary download root while preserving subfolders |
+| optional | `11-import-with-existing-paths.sh` | Import old `.torrent` files directly against existing NAS paths |
 
 ## Ports
 
@@ -86,3 +87,15 @@ sh scripts/10-rewrite-directory-prefix.sh apply /share/SN
 ```
 
 Example: `/share/Rdownload/entware/downloads/Movies` becomes `/share/SN/Movies`.
+
+If the current rtorrent session is empty, import from the recovered `.torrent`
+backup and infer paths by matching torrent names to existing data under
+`/share/SN`:
+
+```sh
+sh scripts/11-import-with-existing-paths.sh /share/CACHEDEV1_DATA/Rdownload/session.bak.relocate-restored.1778458720 /share/SN 20
+sh scripts/11-import-with-existing-paths.sh apply /share/CACHEDEV1_DATA/Rdownload/session.bak.relocate-restored.1778458720 /share/SN 20
+```
+
+This preserves category subfolders because it sets the torrent directory to the
+parent folder where the matching file/directory already exists.

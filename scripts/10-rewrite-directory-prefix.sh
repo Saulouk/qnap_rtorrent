@@ -59,8 +59,12 @@ log "Old prefix: $OLD_PREFIX"
 log "New prefix: $NEW_PREFIX"
 log "Report: $REPORT"
 
-hashes_json="$(rpc download_list "" 2>/dev/null || rpc download_list main 2>/dev/null || true)"
-hashes="$(echo "$hashes_json" | tr -d '[]" ' | tr ',' '\n' | sed '/^$/d')"
+hashes=""
+for view in "" main started stopped complete incomplete; do
+    hashes_json="$(rpc download_list "$view" 2>/dev/null || true)"
+    view_hashes="$(echo "$hashes_json" | tr -d '[]" ' | tr ',' '\n' | sed '/^$/d')"
+    hashes="$(printf "%s\n%s\n" "$hashes" "$view_hashes" | sed '/^$/d' | sort -u)"
+done
 
 if [ -z "$hashes" ]; then
     die "No torrents returned by rtorrent. Is the WebUI showing torrents in the current session?"
