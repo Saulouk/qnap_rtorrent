@@ -30,6 +30,19 @@ ENTWARE_WWW="${ENTWARE_ROOT}/www"
 [ -n "$RUT_WEB" ] || die "ruTorrent web UI not found"
 
 RUT_CONF_DIR="${RUT_WEB}/conf"
+
+# ruTorrent lowercases login names; migrate legacy mixed-case folders
+for pair in "${USER_SAULOUK}:${USER_SAULOUK_RPC}" "${USER_JOSH}:${USER_JOSH_RPC}"; do
+    old_name="${pair%%:*}"
+    new_name="${pair#*:}"
+    for base in "${RUT_CONF_DIR}/users" "${ENTWARE_ROOT}/users"; do
+        if [ -d "${base}/${old_name}" ] && [ ! -e "${base}/${new_name}" ]; then
+            log "Migrating ${base}/${old_name} -> ${base}/${new_name}"
+            mv "${base}/${old_name}" "${base}/${new_name}"
+        fi
+    done
+done
+
 mkdir -p "$RUT_CONF_DIR" "$RUT_PROFILE_ROOT" "$SAULOUK_PROFILE" "$JOSH_PROFILE" "${ENTWARE_ROOT}/tmp"
 
 # Migrate legacy single-user settings into Saulouk profile once
@@ -49,34 +62,37 @@ cat > "${RUT_CONF_DIR}/config.php" <<PHPEOF
 	\$log_file = '${ENTWARE_LOGS}/ui-rtorrent-error.log';
 	\$scgi_port = 0;
 	\$scgi_host = "unix://${SAULOUK_SOCKET}";
-	\$XMLRPCMountPoint = "/RPC2";
+	\$XMLRPCMountPoint = "${SAULOUK_RPC_MOUNT}";
 	\$localhosts = array("127.0.0.1", "::1", "localhost", "${NAS_IP}");
 	\$profilePath = '${RUT_PROFILE_ROOT}';
 	\$profileMask = 0777;
 	\$tempDirectory = '${ENTWARE_ROOT}/tmp/';
 	\$canUseXSendFile = false;
 	\$locale = "UTF8";
+	\$localHostedMode = true;
 PHPEOF
 
 cat > "${RUT_CONF_DIR}/access.ini" <<INIEOF
-; Multi-user access
-[${USER_SAULOUK}]
-[${USER_JOSH}]
+; Multi-user access (lowercase = ruTorrent REMOTE_USER)
+[${USER_SAULOUK_RPC}]
+[${USER_JOSH_RPC}]
 INIEOF
 
-mkdir -p "${RUT_CONF_DIR}/users/${USER_SAULOUK}" "${RUT_CONF_DIR}/users/${USER_JOSH}"
+mkdir -p "${RUT_CONF_DIR}/users/${USER_SAULOUK_RPC}" "${RUT_CONF_DIR}/users/${USER_JOSH_RPC}"
 
-cat > "${RUT_CONF_DIR}/users/${USER_SAULOUK}/config.php" <<PHPEOF
+cat > "${RUT_CONF_DIR}/users/${USER_SAULOUK_RPC}/config.php" <<PHPEOF
 <?php
 	\$scgi_port = 0;
 	\$scgi_host = "unix://${SAULOUK_SOCKET}";
+	\$XMLRPCMountPoint = "${SAULOUK_RPC_MOUNT}";
 	\$profilePath = '${RUT_PROFILE_ROOT}';
 PHPEOF
 
-cat > "${RUT_CONF_DIR}/users/${USER_JOSH}/config.php" <<PHPEOF
+cat > "${RUT_CONF_DIR}/users/${USER_JOSH_RPC}/config.php" <<PHPEOF
 <?php
 	\$scgi_port = 0;
 	\$scgi_host = "unix://${JOSH_SOCKET}";
+	\$XMLRPCMountPoint = "${JOSH_RPC_MOUNT}";
 	\$profilePath = '${RUT_PROFILE_ROOT}';
 PHPEOF
 
@@ -110,11 +126,21 @@ mimetype.assign = (
 server.modules = ( "mod_access", "mod_auth", "mod_authn_file", "mod_fastcgi", "mod_rewrite", "mod_scgi" )
 auth.backend = "htpasswd"
 auth.backend.htpasswd.userfile = "${HTPASSWD_FILE}"
-auth.require = ( "/rutorrent/" =>
-  (
+auth.require = (
+  "/rutorrent/" => (
     "method" => "basic",
     "realm" => "ruTorrent",
     "require" => "valid-user"
+  ),
+  "${SAULOUK_RPC_MOUNT}" => (
+    "method" => "basic",
+    "realm" => "ruTorrent",
+    "require" => "user=${USER_SAULOUK}"
+  ),
+  "${JOSH_RPC_MOUNT}" => (
+    "method" => "basic",
+    "realm" => "ruTorrent",
+    "require" => "user=${USER_JOSH}"
   )
 )
 fastcgi.server = (
@@ -126,8 +152,12 @@ fastcgi.server = (
   ))
 )
 scgi.server = (
-  "/RPC2" => ((
+  "${SAULOUK_RPC_MOUNT}" => ((
     "socket" => "${SAULOUK_SOCKET}",
+    "check-local" => "disable"
+  )),
+  "${JOSH_RPC_MOUNT}" => ((
+    "socket" => "${JOSH_SOCKET}",
     "check-local" => "disable"
   ))
 )
@@ -139,3 +169,5 @@ start_lighttpd_stack "$LIGHTTPD_CONF" "$LIGHTTPD_BIN" "$PHP_CGI" || \
     die "lighttpd failed to start - inspect ${ENTWARE_LOGS}/lighttpd.out"
 
 log "ruTorrent multi-user URL: http://${NAS_IP}:${WEB_PORT}/rutorrent/"
+log "${USER_SAULOUK} -> ${SAULOUK_RPC_MOUNT} (${SAULOUK_SOCKET})"
+log "${USER_JOSH} -> ${JOSH_RPC_MOUNT} (${JOSH_SOCKET})"

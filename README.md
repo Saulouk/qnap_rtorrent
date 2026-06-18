@@ -194,10 +194,13 @@ sh scripts/19-configure-two-users.sh users.credentials
 
 3. Open `http://<nas-ip>:6010/rutorrent/` and log in as `Saulouk` or `josh`.
 
-| User | rtorrent session | Torrents |
-|------|------------------|----------|
-| Saulouk | `/share/Rdownload/entware/session` | Existing recovered torrents |
-| josh | `/share/Rdownload/entware/users/josh/session` | Empty (new) |
+| User | Login | rtorrent session | RPC path | Torrents |
+|------|-------|------------------|----------|----------|
+| Saulouk | `Saulouk` | `/share/Rdownload/entware/session` | `/RPC-saulouk` | Existing recovered torrents |
+| josh | `josh` | `/share/Rdownload/entware/users/josh/session` | `/RPC-josh` | Empty (new) |
+
+ruTorrent maps logins to lowercase folders under `conf/users/` (e.g. `Saulouk` → `saulouk`).
+Each user must use their own RPC mount — a shared `/RPC2` would show Saulouk's torrents to everyone.
 
 Login passwords are saved to `/share/Public/rtorrent-debug-backup/multiuser-credentials-latest.txt`.
 

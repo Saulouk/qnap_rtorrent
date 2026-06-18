@@ -37,6 +37,11 @@ DATA_ROOT="${DATA_ROOT:-/share/SN}"
 # Multi-user rtorrent (Saulouk = existing recovered instance, josh = new empty instance)
 USER_SAULOUK="Saulouk"
 USER_JOSH="josh"
+# ruTorrent lowercases REMOTE_USER for conf/users/ lookup
+USER_SAULOUK_RPC="saulouk"
+USER_JOSH_RPC="josh"
+SAULOUK_RPC_MOUNT="/RPC-saulouk"
+JOSH_RPC_MOUNT="/RPC-josh"
 MULTIUSER_MARKER="${ENTWARE_ROOT}/.multiuser-enabled"
 HTPASSWD_FILE="${ENTWARE_ROOT}/htpasswd"
 MULTIUSER_CREDENTIALS="${BACKUP_ROOT}/multiuser-credentials-latest.txt"
@@ -51,7 +56,7 @@ SAULOUK_WATCH="${ENTWARE_WATCH}"
 SAULOUK_LOGS="${ENTWARE_LOGS}"
 SAULOUK_PIDFILE="${ENTWARE_ROOT}/rtorrent.pid"
 SAULOUK_SETTINGS="${ENTWARE_ROOT}/settings"
-SAULOUK_PROFILE="${ENTWARE_ROOT}/users/${USER_SAULOUK}/settings"
+SAULOUK_PROFILE="${ENTWARE_ROOT}/users/${USER_SAULOUK_RPC}/settings"
 
 # Josh instance (isolated session, same DATA_ROOT)
 JOSH_ROOT="${ENTWARE_ROOT}/users/josh"
@@ -63,7 +68,7 @@ JOSH_WATCH="${JOSH_ROOT}/watch"
 JOSH_LOGS="${JOSH_ROOT}/logs"
 JOSH_PIDFILE="${JOSH_ROOT}/rtorrent.pid"
 JOSH_SETTINGS="${JOSH_ROOT}/settings"
-JOSH_PROFILE="${ENTWARE_ROOT}/users/${USER_JOSH}/settings"
+JOSH_PROFILE="${ENTWARE_ROOT}/users/${USER_JOSH_RPC}/settings"
 
 # ruTorrent profile root (multi-user data under users/USERNAME/settings)
 RUT_PROFILE_ROOT="${ENTWARE_ROOT}"
