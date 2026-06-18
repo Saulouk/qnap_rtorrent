@@ -2,8 +2,9 @@
 # Start both rtorrent instances (multi-user mode).
 
 set -e
-. "$(dirname "$0")/common.sh"
-. "$(dirname "$0")/rtorrent-instance.sh"
+: "${RECOVERY_ROOT:=$(cd "$(dirname "$0")/.." && pwd)}"
+. "${RECOVERY_ROOT}/lib/common.sh"
+. "${RECOVERY_ROOT}/lib/rtorrent-instance.sh"
 
 ensure_entware_path
 ensure_php_xml

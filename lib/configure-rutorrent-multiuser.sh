@@ -2,7 +2,8 @@
 # Configure ruTorrent WebUI + lighttpd for two users (HTTP auth + per-user SCGI).
 
 set -e
-. "$(dirname "$0")/common.sh"
+: "${RECOVERY_ROOT:=$(cd "$(dirname "$0")/.." && pwd)}"
+. "${RECOVERY_ROOT}/lib/common.sh"
 
 ensure_entware_path
 ensure_php_symlinks

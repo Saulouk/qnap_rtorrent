@@ -93,6 +93,7 @@ mkdir -p "$RUT_PROFILE_ROOT" "$SAULOUK_PROFILE" "$JOSH_PROFILE"
 chmod -R 777 "$JOSH_ROOT" "$RUT_PROFILE_ROOT" 2>/dev/null || true
 
 # Start both rtorrent daemons
+export RECOVERY_ROOT
 . "${RECOVERY_ROOT}/lib/start-multiuser-rtorrent.sh"
 
 # Configure WebUI + HTTP auth
