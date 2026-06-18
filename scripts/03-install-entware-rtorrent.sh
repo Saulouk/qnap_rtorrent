@@ -28,7 +28,7 @@ for pkg in rtorrent rtorrent-rpc xmlrpc-c-server dtach; do
 done
 
 # Web stack
-for pkg in lighttpd lighttpd-mod-fastcgi lighttpd-mod-scgi spawn-fcgi; do
+for pkg in lighttpd lighttpd-mod-fastcgi lighttpd-mod-scgi lighttpd-mod-auth lighttpd-mod-authn_file spawn-fcgi; do
     install_pkg "$pkg" || true
 done
 

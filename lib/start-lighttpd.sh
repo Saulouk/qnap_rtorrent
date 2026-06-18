@@ -9,11 +9,12 @@ start_lighttpd_stack() {
 
     stop_lighttpd_stack
 
-    if [ -x "$lighttpd_bin" ] && "$lighttpd_bin" -tt -f "$lighttpd_conf" >/dev/null 2>&1; then
-        :
-    elif [ -x "$lighttpd_bin" ]; then
-        log "WARN: lighttpd config test failed:"
-        "$lighttpd_bin" -tt -f "$lighttpd_conf" 2>&1 | tail -20 | while read -r line; do log "  $line"; done
+    if [ -x "$lighttpd_bin" ]; then
+        if ! "$lighttpd_bin" -tt -f "$lighttpd_conf" >/dev/null 2>&1; then
+            log "lighttpd config test failed:"
+            "$lighttpd_bin" -tt -f "$lighttpd_conf" 2>&1 | tail -20 | while read -r line; do log "  $line"; done
+            return 1
+        fi
     fi
 
     if [ -x /opt/bin/spawn-fcgi ]; then
@@ -24,7 +25,8 @@ start_lighttpd_stack() {
     fi
     sleep 1
 
-    nohup "$lighttpd_bin" -f "$lighttpd_conf" -D > "${ENTWARE_LOGS}/lighttpd.out" 2>&1 &
+    : > "${ENTWARE_LOGS}/lighttpd.out"
+    "$lighttpd_bin" -f "$lighttpd_conf" -D >> "${ENTWARE_LOGS}/lighttpd.out" 2>&1 </dev/null &
     echo $! > "$lighttpd_pidfile"
     sleep 3
 

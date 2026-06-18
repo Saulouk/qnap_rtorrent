@@ -8,6 +8,7 @@ set -e
 ensure_entware_path
 ensure_php_symlinks
 ensure_php_xml
+ensure_lighttpd_auth_modules
 
 ENTWARE_WWW="${ENTWARE_ROOT}/www"
 
@@ -106,7 +107,7 @@ mimetype.assign = (
   ".ico"  => "image/x-icon",
   ".php"  => "application/x-httpd-php"
 )
-server.modules = ( "mod_access", "mod_auth", "mod_fastcgi", "mod_rewrite", "mod_scgi" )
+server.modules = ( "mod_access", "mod_auth", "mod_authn_file", "mod_fastcgi", "mod_rewrite", "mod_scgi" )
 auth.backend = "htpasswd"
 auth.backend.htpasswd.userfile = "${HTPASSWD_FILE}"
 auth.require = (

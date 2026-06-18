@@ -130,7 +130,22 @@ ensure_php_symlinks() {
     [ -x /opt/bin/php8-cli ] && ln -sfn php8-cli /opt/bin/php 2>/dev/null || true
 }
 
-ensure_php_xml() {
+ensure_lighttpd_auth_modules() {
+    has_entware || return 0
+    ensure_entware_path
+    /opt/bin/opkg update >/dev/null 2>&1 || true
+    for pkg in lighttpd-mod-auth lighttpd-mod-authn_file; do
+        if /opt/bin/opkg list-installed 2>/dev/null | grep -q "^${pkg} "; then
+            continue
+        fi
+        log "Installing ${pkg} (HTTP auth for ruTorrent)..."
+        /opt/bin/opkg install "$pkg" || die "Failed to install ${pkg}"
+    done
+    if [ ! -f /opt/lib/lighttpd/mod_authn_file.so ]; then
+        die "mod_authn_file.so missing after opkg install — run: /opt/bin/opkg install lighttpd-mod-authn_file"
+    fi
+}
+
     php_bin="/opt/bin/php8-cli"
     [ -x "$php_bin" ] || php_bin="/opt/bin/php"
     [ -x "$php_bin" ] || die "php8-cli not found"

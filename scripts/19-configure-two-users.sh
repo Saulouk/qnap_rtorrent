@@ -28,7 +28,7 @@ ensure_php_xml
 [ -x /opt/bin/rtorrent ] || die "Run 03-install-entware-rtorrent.sh first"
 [ -x /opt/bin/dtach ] || die "dtach required"
 
-/opt/bin/opkg install lighttpd-mod-auth 2>/dev/null || true
+/opt/bin/opkg install lighttpd-mod-auth lighttpd-mod-authn_file 2>/dev/null || true
 
 mkdir -p "$BACKUP_DIR"
 for f in \
