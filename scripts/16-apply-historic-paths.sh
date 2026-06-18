@@ -24,15 +24,18 @@ BATCH_SIZE="${2:-5}"
 CLEANUP="${3:-}"
 MAP="${HISTORIC_MAP_VALIDATED}"
 RPC="${RECOVERY_ROOT}/lib/rtorrent-rpc.php"
+IMPORT_PHP="${RECOVERY_ROOT}/lib/import-torrent.php"
 TORRENT_SOURCE="${HISTORIC_TORRENT_DIR}"
 STAGING="${ENTWARE_ROOT}/import-historic"
+WATCH_LOAD="${ENTWARE_WATCH}/load"
 REPORT="${BACKUP_ROOT}/apply-historic-paths-$(date +%Y%m%d-%H%M%S).tsv"
 WORK="${BACKUP_ROOT}/apply-historic-work.$$"
 
 [ -f "$MAP" ] || die "Validated map not found: $MAP (run steps 14-15 first)"
 [ -f "$RPC" ] || die "Missing XMLRPC helper: $RPC"
+[ -f "$IMPORT_PHP" ] || die "Missing import helper: $IMPORT_PHP"
 [ -d "$TORRENT_SOURCE" ] || die "Torrent source not found: $TORRENT_SOURCE"
-mkdir -p "$STAGING"
+mkdir -p "$STAGING" "$WATCH_LOAD"
 
 php_bin="/opt/bin/php8-cli"
 [ -x "$php_bin" ] || php_bin="/opt/bin/php"
@@ -68,15 +71,24 @@ import_torrent_stopped() {
   fi
   staged="${STAGING}/${hash}.torrent"
   cp "$torrent_file" "$staged"
-  err="$(rpc_err load "$staged" 2>&1)" || {
-    log "  RPC load failed: $err"
-    return 1
-  }
-  sleep 2
-  if torrent_is_loaded "$hash"; then
-    return 0
+
+  err_file="${BACKUP_ROOT}/import-torrent.err.$$"
+  if RTORRENT_SCGI_SOCKET="$SCGI_SOCKET" "$php_bin" "$IMPORT_PHP" "$staged" >"${BACKUP_ROOT}/import-torrent.out.$$" 2>"$err_file"; then
+    sleep 2
+    torrent_is_loaded "$hash" && return 0
   fi
-  log "  torrent not visible after load (hash $hash)"
+
+  # Fallback: rtorrent watch schedule uses load.normal on this folder.
+  cp "$staged" "${WATCH_LOAD}/${hash}.torrent"
+  i=0
+  while [ "$i" -lt 15 ]; do
+    sleep 2
+    torrent_is_loaded "$hash" && return 0
+    i=$((i + 1))
+  done
+
+  log "  import failed: $(head -3 "$err_file" 2>/dev/null | tr '\n' ' ')"
+  rm -f "$err_file" "${BACKUP_ROOT}/import-torrent.out.$$"
   return 1
 }
 

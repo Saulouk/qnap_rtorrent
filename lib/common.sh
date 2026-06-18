@@ -104,7 +104,7 @@ ensure_php_xml() {
 
     log "PHP simplexml missing — installing XML modules..."
     /opt/bin/opkg update >/dev/null 2>&1 || true
-    for pkg in php8-mod-xml php8-xml php8-mod-simplexml; do
+    for pkg in php8-mod-simplexml php8-mod-xml php8-xml; do
         /opt/bin/opkg install "$pkg" 2>/dev/null || true
     done
 
