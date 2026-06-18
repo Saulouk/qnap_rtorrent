@@ -24,12 +24,14 @@ CLEANUP="${3:-}"
 MAP="${HISTORIC_MAP_VALIDATED}"
 RPC="${RECOVERY_ROOT}/lib/rtorrent-rpc.php"
 TORRENT_SOURCE="${HISTORIC_TORRENT_DIR}"
+STAGING="${ENTWARE_ROOT}/import-historic"
 REPORT="${BACKUP_ROOT}/apply-historic-paths-$(date +%Y%m%d-%H%M%S).tsv"
 WORK="${BACKUP_ROOT}/apply-historic-work.$$"
 
 [ -f "$MAP" ] || die "Validated map not found: $MAP (run steps 14-15 first)"
 [ -f "$RPC" ] || die "Missing XMLRPC helper: $RPC"
 [ -S "$SCGI_SOCKET" ] || die "rtorrent SCGI socket missing: $SCGI_SOCKET"
+mkdir -p "$STAGING"
 
 php_bin="/opt/bin/php8-cli"
 [ -x "$php_bin" ] || php_bin="/opt/bin/php"
@@ -38,18 +40,26 @@ rpc() {
   RTORRENT_SCGI_SOCKET="$SCGI_SOCKET" "$php_bin" "$RPC" "$@"
 }
 
+hash_lc() {
+  echo "$1" | tr 'A-F' 'a-f'
+}
+
 torrent_is_loaded() {
-  hash="$1"
+  hash="$(hash_lc "$1")"
   rpc download_list 2>/dev/null | tr -d '[]" ' | tr ',' '\n' | grep -qi "^${hash}$"
 }
 
 import_torrent_stopped() {
   torrent_file="$1"
-  hash="$2"
+  hash="$(hash_lc "$2")"
   if torrent_is_loaded "$hash"; then
     return 0
   fi
-  rpc load_raw_stopped "$(cat "$torrent_file")" >/dev/null
+  staged="${STAGING}/${hash}.torrent"
+  cp "$torrent_file" "$staged"
+  rpc load.normal "$staged" >/dev/null 2>&1 || rpc load "$staged" >/dev/null 2>&1 || return 1
+  sleep 1
+  torrent_is_loaded "$hash"
 }
 
 log "=== Step 16: Apply historic paths ==="
@@ -94,15 +104,17 @@ tail -n +2 "$WORK" | while IFS="$(printf '\t')" read -r hash name old_path new_p
     continue
   fi
 
+  hash_lc="$(hash_lc "$hash")"
+
   if ! import_torrent_stopped "$torrent_file" "$hash"; then
     echo "$hash	$name	$old_path	$new_path	$status	IMPORT_FAILED" >> "$REPORT"
     log "IMPORT FAILED: $name"
     continue
   fi
 
-  rpc d.stop "$hash" >/dev/null 2>&1 || true
-  rpc d.directory.set "$hash" "$new_path" >/dev/null
-  rpc d.check_hash "$hash" >/dev/null 2>&1 || true
+  rpc d.stop "$hash_lc" >/dev/null 2>&1 || true
+  rpc d.directory.set "$hash_lc" "$new_path" >/dev/null
+  rpc d.check_hash "$hash_lc" >/dev/null 2>&1 || true
 
   echo "$hash	$name	$old_path	$new_path	$status	APPLIED" >> "$REPORT"
   log "APPLIED: $name -> $new_path"
