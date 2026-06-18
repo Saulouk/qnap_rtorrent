@@ -22,7 +22,12 @@ instance_rut_conf="$SAULOUK_RUT_CONF"
 instance_watch="$SAULOUK_WATCH"
 instance_logs="$SAULOUK_LOGS"
 instance_pidfile="$SAULOUK_PIDFILE"
-start_rtorrent_instance || die "Failed to start ${USER_SAULOUK} rtorrent"
+start_rtorrent_instance || {
+    log "ERROR: Failed to start ${USER_SAULOUK} rtorrent"
+    log "Try: sh scripts/18-restart-stack.sh"
+    log "Or inspect: ${SAULOUK_LOGS}/rtorrent.err"
+    exit 1
+}
 
 # Josh — empty isolated session
 instance_name="$USER_JOSH"
