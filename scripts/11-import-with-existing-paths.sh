@@ -125,7 +125,7 @@ for torrent in "$SOURCE_DIR"/*.torrent; do
         cp "$torrent" "$staged"
 
         # Load stopped/normal first, set path, then check existing data.
-        rpc load.normal "$staged" >/dev/null 2>&1 || rpc load.start "$staged" >/dev/null 2>&1 || true
+        rpc load.normal "" "$staged" >/dev/null 2>&1 || rpc load.start "" "$staged" >/dev/null 2>&1 || true
         sleep 1
         rpc d.stop "$hash" >/dev/null 2>&1 || true
         rpc d.directory.set "$hash" "$target" >/dev/null

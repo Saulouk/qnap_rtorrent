@@ -49,7 +49,10 @@ import_via_xmlrpc() {
 \$socket = '${SCGI_SOCKET}';
 \$path = '${torrent_path}';
 \$method = '${method}';
-\$body = '<?xml version=\"1.0\"?><methodCall><methodName>'.\$method.'</methodName><params><param><value><string>'.htmlspecialchars(\$path, ENT_XML1).'</string></value></param></params></methodCall>';
+\$body = '<?xml version=\"1.0\"?><methodCall><methodName>'.\$method.'</methodName><params>'
+  . '<param><value><string></string></value></param>'
+  . '<param><value><string>'.htmlspecialchars(\$path, ENT_XML1).'</string></value></param>'
+  . '</params></methodCall>';
 \$headers = \"CONTENT_LENGTH\\0\".strlen(\$body).\"\\0SCGI\\0\".\"1\\0REQUEST_METHOD\\0POST\\0REQUEST_URI\\0/RPC2\\0\";
 \$req = strlen(\$headers).':'.\$headers.','.\$body;
 \$s = stream_socket_client('unix://'.\$socket, \$e, \$es, 5);

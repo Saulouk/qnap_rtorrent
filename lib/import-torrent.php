@@ -30,31 +30,36 @@ if ($raw === false || $raw === '') {
     exit(2);
 }
 
-// rtorrent 0.15 exposes command names with dots, not legacy bare "load".
+// rTorrent 0.15 XMLRPC: almost all commands need a target as arg0.
+// load.* commands use "" (empty hash) then the file path or raw data.
 $attempts = [
-    ['load.normal', [$path]],
-    ['load.start', [$path]],
-    ['load.raw', [$raw]],
-    ['load.raw_start', [$raw]],
+    ['load.normal', ['', $path]],
+    ['load.start', ['', $path]],
+    ['load.raw', ['', base64_encode($raw)]],
+    ['load.raw', ['', $raw]],
+    ['load.raw_start', ['', base64_encode($raw)]],
 ];
 
 $errors = [];
+$before = rpc_download_hashes($socket);
+
 foreach ($attempts as [$method, $params]) {
     try {
         $result = rpc_call($socket, $method, $params);
         $hash = strtolower(trim((string)$result));
+
         if ($hash !== '' && preg_match('/^[0-9a-f]{40}$/', $hash)) {
             echo "$hash\n";
             exit(0);
         }
-        if (rpc_torrent_loaded($socket, $hash !== '' ? $hash : '')) {
-            echo "$hash\n";
+
+        $after = rpc_download_hashes($socket);
+        $new = array_values(array_diff($after, $before));
+        if (count($new) === 1) {
+            echo $new[0] . "\n";
             exit(0);
         }
-        // load.* may return empty string but still add torrent — check session.
-        $hashes = rpc_download_hashes($socket);
-        if (count($hashes) > 0) {
-            // If we can't get hash from response, caller will match by polling.
+        if (count($after) > count($before)) {
             echo "OK\n";
             exit(0);
         }
