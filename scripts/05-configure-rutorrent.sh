@@ -132,27 +132,10 @@ url.redirect = ( "^/\$" => "/rutorrent/" )
 EOF
 
 LIGHTTPD_PID="${ENTWARE_ROOT}/lighttpd.pid"
-if [ -f "$LIGHTTPD_PID" ]; then
-    kill "$(cat "$LIGHTTPD_PID")" 2>/dev/null || true
-    sleep 1
-fi
+. "${RECOVERY_ROOT}/lib/start-lighttpd.sh"
 
-# Start php-cgi + lighttpd
-killall php-cgi 2>/dev/null || true
-if [ -x /opt/bin/spawn-fcgi ]; then
-    /opt/bin/spawn-fcgi -s /tmp/entware-php.sock -P /tmp/entware-php.pid -C 0 -n "$PHP_CGI" 2>/dev/null || \
-        "$PHP_CGI" -b 127.0.0.1:9001 &
-else
-    "$PHP_CGI" -b 127.0.0.1:9001 &
-fi
-
-nohup "$LIGHTTPD_BIN" -f "$LIGHTTPD_CONF" -D > "${ENTWARE_LOGS}/lighttpd.out" 2>&1 &
-echo $! > "$LIGHTTPD_PID"
-sleep 3
-
-if ! /bin/ps -ef | grep -v grep | grep -q "$LIGHTTPD_BIN"; then
-    die "lighttpd failed to start - inspect ${LIGHTTPD_CONF}"
-fi
+start_lighttpd_stack "$LIGHTTPD_CONF" "$LIGHTTPD_BIN" "$PHP_CGI" || \
+    die "lighttpd failed to start - inspect ${ENTWARE_LOGS}/lighttpd.out"
 
 log "Testing getplugins.php..."
 curl -i --max-time 10 "http://127.0.0.1:${WEB_PORT}/rutorrent/php/getplugins.php" | head -20 || true

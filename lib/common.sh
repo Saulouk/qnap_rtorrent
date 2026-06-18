@@ -169,7 +169,7 @@ find_torrent_by_hash() {
 }
 
 multiuser_enabled() {
-    [ -f "$MULTIUSER_MARKER" ]
+    [ -f "$MULTIUSER_MARKER" ] || [ -f "$HTPASSWD_FILE" ]
 }
 
 rpc_torrent_count() {

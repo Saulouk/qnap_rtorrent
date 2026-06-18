@@ -13,8 +13,10 @@ ensure_php_xml
 
 if multiuser_enabled; then
     log "Multi-user mode detected"
+    export RECOVERY_ROOT
     . "${RECOVERY_ROOT}/lib/start-multiuser-rtorrent.sh"
     . "${RECOVERY_ROOT}/lib/configure-rutorrent-multiuser.sh"
+    date > "$MULTIUSER_MARKER" 2>/dev/null || true
 else
     sh "$(dirname "$0")/04-minimal-native-test.sh"
     sh "$(dirname "$0")/05-configure-rutorrent.sh"
