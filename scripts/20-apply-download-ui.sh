@@ -7,6 +7,8 @@
 set -e
 . "$(dirname "$0")/../lib/common.sh"
 . "${RECOVERY_ROOT}/lib/configure-rutorrent-downloads.sh"
+
+ensure_entware_path
 ensure_php_xml
 
 RUT_WEB=""
