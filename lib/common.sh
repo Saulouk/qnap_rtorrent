@@ -33,6 +33,7 @@ HISTORIC_MAP_VALIDATED="${BACKUP_ROOT}/historic-path-map-validated-latest.tsv"
 
 # Shared download root for all users
 DATA_ROOT="${DATA_ROOT:-/share/SN}"
+DATA_ROOT_SLASH="${DATA_ROOT%/}/"
 
 # Multi-user rtorrent (Saulouk = existing recovered instance, josh = new empty instance)
 USER_SAULOUK="Saulouk"
@@ -139,12 +140,12 @@ ensure_lighttpd_auth_modules() {
     has_entware || return 0
     ensure_entware_path
     /opt/bin/opkg update >/dev/null 2>&1 || true
-    for pkg in lighttpd-mod-auth lighttpd-mod-authn_file; do
+    for pkg in lighttpd-mod-auth lighttpd-mod-authn_file lighttpd-mod-setenv; do
         if /opt/bin/opkg list-installed 2>/dev/null | grep -q "^${pkg} "; then
             continue
         fi
-        log "Installing ${pkg} (HTTP auth for ruTorrent)..."
-        /opt/bin/opkg install "$pkg" || die "Failed to install ${pkg}"
+        log "Installing ${pkg}..."
+        /opt/bin/opkg install "$pkg" 2>/dev/null || true
     done
     if [ ! -f /opt/lib/lighttpd/mod_authn_file.so ]; then
         die "mod_authn_file.so missing after opkg install — run: /opt/bin/opkg install lighttpd-mod-authn_file"

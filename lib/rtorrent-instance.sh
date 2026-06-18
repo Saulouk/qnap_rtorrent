@@ -17,6 +17,7 @@ write_rtorrent_instance_conf() {
 # rtorrent 0.15 - ${instance_name}
 session.path.set = ${instance_session}
 directory.default.set = ${instance_downloads}
+system.cwd.set = ${instance_downloads}
 network.scgi.open_local = ${instance_socket}
 schedule2 = scgi_permission, 0, 0, "execute=chmod,\"a+w\",${instance_socket}"
 schedule2 = watch_load, 10, 10, "load.normal=${instance_watch}/load/*.torrent"

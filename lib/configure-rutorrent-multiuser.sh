@@ -57,6 +57,9 @@ chmod -R 777 "$RUT_PROFILE_ROOT" "${ENTWARE_ROOT}/tmp" 2>/dev/null || true
 NAS_IP="$(hostname -i 2>/dev/null | awk '{print $1}')"
 [ -n "$NAS_IP" ] || NAS_IP="192.168.1.2"
 
+. "${RECOVERY_ROOT}/lib/configure-rutorrent-downloads.sh"
+DOWNLOAD_UI_BLOCK="$(rutorrent_php_externals_block | sed "s|DATA_ROOT_SLASH_PLACEHOLDER|${DATA_ROOT_SLASH}|g")"
+
 cat > "${RUT_CONF_DIR}/config.php" <<PHPEOF
 <?php
 	\$log_file = '${ENTWARE_LOGS}/ui-rtorrent-error.log';
@@ -70,6 +73,7 @@ cat > "${RUT_CONF_DIR}/config.php" <<PHPEOF
 	\$canUseXSendFile = false;
 	\$locale = "UTF8";
 	\$localHostedMode = true;
+${DOWNLOAD_UI_BLOCK}
 PHPEOF
 
 cat > "${RUT_CONF_DIR}/access.ini" <<INIEOF
@@ -86,6 +90,7 @@ cat > "${RUT_CONF_DIR}/users/${USER_SAULOUK_RPC}/config.php" <<PHPEOF
 	\$scgi_host = "unix://${SAULOUK_SOCKET}";
 	\$XMLRPCMountPoint = "${SAULOUK_RPC_MOUNT}";
 	\$profilePath = '${RUT_PROFILE_ROOT}';
+${DOWNLOAD_UI_BLOCK}
 PHPEOF
 
 cat > "${RUT_CONF_DIR}/users/${USER_JOSH_RPC}/config.php" <<PHPEOF
@@ -94,7 +99,10 @@ cat > "${RUT_CONF_DIR}/users/${USER_JOSH_RPC}/config.php" <<PHPEOF
 	\$scgi_host = "unix://${JOSH_SOCKET}";
 	\$XMLRPCMountPoint = "${JOSH_RPC_MOUNT}";
 	\$profilePath = '${RUT_PROFILE_ROOT}';
+${DOWNLOAD_UI_BLOCK}
 PHPEOF
+
+apply_rutorrent_download_ui "$RUT_CONF_DIR"
 
 LIGHTTPD_BIN=""
 for b in /opt/sbin/lighttpd /opt/bin/lighttpd; do
@@ -123,9 +131,12 @@ mimetype.assign = (
   ".ico"  => "image/x-icon",
   ".php"  => "application/x-httpd-php"
 )
-server.modules = ( "mod_access", "mod_auth", "mod_authn_file", "mod_fastcgi", "mod_rewrite", "mod_scgi" )
+server.modules = ( "mod_access", "mod_auth", "mod_authn_file", "mod_fastcgi", "mod_rewrite", "mod_scgi", "mod_setenv" )
 auth.backend = "htpasswd"
 auth.backend.htpasswd.userfile = "${HTPASSWD_FILE}"
+setenv.add-response-header = (
+  "X-Frame-Options" => "SAMEORIGIN"
+)
 auth.require = (
   "/rutorrent/" => (
     "method" => "basic",
