@@ -146,6 +146,7 @@ ensure_lighttpd_auth_modules() {
     fi
 }
 
+ensure_php_xml() {
     php_bin="/opt/bin/php8-cli"
     [ -x "$php_bin" ] || php_bin="/opt/bin/php"
     [ -x "$php_bin" ] || die "php8-cli not found"
