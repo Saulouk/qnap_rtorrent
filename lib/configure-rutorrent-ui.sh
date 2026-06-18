@@ -64,15 +64,11 @@ ensure_rutorrent_plugins_installed() {
     plugins_dir="${rut_web}/plugins"
     mkdir -p "$plugins_dir"
 
-    if [ -d "${plugins_dir}/_getdir" ] && [ -d "${plugins_dir}/rss" ]; then
-        return 0
-    fi
-
     tmp="/share/Public/rutorrent-master.tar.gz"
     src="/share/Public/ruTorrent-master"
     url="https://github.com/Novik/ruTorrent/archive/refs/heads/master.tar.gz"
 
-    log "Installing missing ruTorrent plugins from upstream..."
+    log "Syncing all ruTorrent plugins from upstream..."
     rm -f "$tmp"
     rm -rf "$src"
     wget -O "$tmp" "$url" || curl -L -o "$tmp" "$url"

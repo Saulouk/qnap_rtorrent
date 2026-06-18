@@ -224,4 +224,10 @@ sh scripts/20-configure-rutorrent-ui.sh
 
 (`20-apply-download-ui.sh` is an alias for the same script.)
 
+Sync all upstream ruTorrent plugins and enable installed plugins in `plugins.ini`:
+
+```sh
+sh scripts/21-sync-all-rutorrent-plugins.sh
+```
+
 Revert to single-user (manual): remove `/share/Rdownload/entware/.multiuser-enabled` and run `sh scripts/18-restart-stack.sh`.

@@ -2,10 +2,21 @@
 # ruTorrent plugin defaults — scan installed plugins, enable a sensible set.
 
 # Space-separated plugin folder names to force off (security / conflicts).
-RUTORRENT_PLUGINS_DISABLE="loginmgr httprpc xmpp _cloudflare"
+# loginmgr is intentionally not disabled; rutracker_check depends on it.
+RUTORRENT_PLUGINS_DISABLE="httprpc xmpp _cloudflare"
 
-# Prefer enabled=yes when present on disk.
+# Prefer enabled=yes when present on disk. Any other installed plugin is also
+# enabled below, so this list mainly controls ordering for core plugins.
 RUTORRENT_PLUGINS_ENABLE="_getdir _task _noty theme datadir create edit erasedata source ratio rss scheduler tracklabels throttle geoip show_peers_like_wtorrent chunks diskspace check_port autotools feeds rssurlrewrite extratio retrackers history trafic cpuload data screenshots seedingtime unpack lookat mediainfo bulk_magnet uploadeta spectrogram trackerstatus extsearch filedrop dump ipad rutracker_check log_history seedbox cookies"
+
+plugin_list_contains() {
+    needle="$1"
+    shift
+    for item in "$@"; do
+        [ "$item" = "$needle" ] && return 0
+    done
+    return 1
+}
 
 write_rutorrent_plugins_ini() {
     conf_dir="$1"
@@ -36,6 +47,15 @@ write_rutorrent_plugins_ini() {
             done
             for plug in $RUTORRENT_PLUGINS_ENABLE; do
                 [ -d "${plugins_dir}/${plug}" ] || continue
+                echo "[${plug}]"
+                echo "enabled = yes"
+                echo ""
+            done
+            for path in "${plugins_dir}"/*; do
+                [ -d "$path" ] || continue
+                plug="$(basename "$path")"
+                plugin_list_contains "$plug" $RUTORRENT_PLUGINS_DISABLE && continue
+                plugin_list_contains "$plug" $RUTORRENT_PLUGINS_ENABLE && continue
                 echo "[${plug}]"
                 echo "enabled = yes"
                 echo ""
