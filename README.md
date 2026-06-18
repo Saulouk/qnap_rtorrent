@@ -150,3 +150,37 @@ To unfreeze watch imports after migration:
 ```sh
 sh scripts/12-freeze-current.sh unfreeze
 ```
+
+## Two-user setup (Saulouk + josh)
+
+Separate torrent lists, shared download root `/share/SN`, one WebUI port with login.
+
+1. Copy and edit credentials:
+
+```sh
+cp users.credentials.example users.credentials
+vi users.credentials
+```
+
+2. Run setup (backs up configs, starts second rtorrent, enables HTTP auth):
+
+```sh
+sh scripts/19-configure-two-users.sh users.credentials
+```
+
+3. Open `http://<nas-ip>:6010/rutorrent/` and log in as `Saulouk` or `josh`.
+
+| User | rtorrent session | Torrents |
+|------|------------------|----------|
+| Saulouk | `/share/Rdownload/entware/session` | Existing recovered torrents |
+| josh | `/share/Rdownload/entware/users/josh/session` | Empty (new) |
+
+Login passwords are saved to `/share/Public/rtorrent-debug-backup/multiuser-credentials-latest.txt`.
+
+Restart both instances + WebUI:
+
+```sh
+sh scripts/18-restart-stack.sh
+```
+
+Revert to single-user (manual): remove `/share/Rdownload/entware/.multiuser-enabled` and run `sh scripts/18-restart-stack.sh`.

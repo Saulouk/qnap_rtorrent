@@ -31,6 +31,43 @@ HISTORIC_TORRENT_DIR="${HISTORIC_TORRENT_DIR:-/share/CACHEDEV1_DATA/Rdownload/se
 HISTORIC_MAP="${BACKUP_ROOT}/historic-path-map-latest.tsv"
 HISTORIC_MAP_VALIDATED="${BACKUP_ROOT}/historic-path-map-validated-latest.tsv"
 
+# Shared download root for all users
+DATA_ROOT="${DATA_ROOT:-/share/SN}"
+
+# Multi-user rtorrent (Saulouk = existing recovered instance, josh = new empty instance)
+USER_SAULOUK="Saulouk"
+USER_JOSH="josh"
+MULTIUSER_MARKER="${ENTWARE_ROOT}/.multiuser-enabled"
+HTPASSWD_FILE="${ENTWARE_ROOT}/htpasswd"
+MULTIUSER_CREDENTIALS="${BACKUP_ROOT}/multiuser-credentials-latest.txt"
+
+# Saulouk instance (default / recovered)
+SAULOUK_ROOT="${ENTWARE_ROOT}"
+SAULOUK_SESSION="${ENTWARE_SESSION}"
+SAULOUK_SOCKET="${SCGI_SOCKET}"
+SAULOUK_DTACH="${DTACH_SOCKET}"
+SAULOUK_RUT_CONF="${ENTWARE_RUT_CONF}"
+SAULOUK_WATCH="${ENTWARE_WATCH}"
+SAULOUK_LOGS="${ENTWARE_LOGS}"
+SAULOUK_PIDFILE="${ENTWARE_ROOT}/rtorrent.pid"
+SAULOUK_SETTINGS="${ENTWARE_ROOT}/settings"
+SAULOUK_PROFILE="${ENTWARE_ROOT}/users/${USER_SAULOUK}/settings"
+
+# Josh instance (isolated session, same DATA_ROOT)
+JOSH_ROOT="${ENTWARE_ROOT}/users/josh"
+JOSH_SESSION="${JOSH_ROOT}/session"
+JOSH_SOCKET="${JOSH_ROOT}/rtorrent.sock"
+JOSH_DTACH="${JOSH_ROOT}/rtorrent.dtach"
+JOSH_RUT_CONF="${JOSH_ROOT}/rtorrent.conf"
+JOSH_WATCH="${JOSH_ROOT}/watch"
+JOSH_LOGS="${JOSH_ROOT}/logs"
+JOSH_PIDFILE="${JOSH_ROOT}/rtorrent.pid"
+JOSH_SETTINGS="${JOSH_ROOT}/settings"
+JOSH_PROFILE="${ENTWARE_ROOT}/users/${USER_JOSH}/settings"
+
+# ruTorrent profile root (multi-user data under users/USERNAME/settings)
+RUT_PROFILE_ROOT="${ENTWARE_ROOT}"
+
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 die() { log "ERROR: $*"; exit 1; }
 
@@ -129,4 +166,16 @@ find_torrent_by_hash() {
     done
 
     find "$dir" -maxdepth 2 -type f -iname "${hash}.torrent" 2>/dev/null | head -1
+}
+
+multiuser_enabled() {
+    [ -f "$MULTIUSER_MARKER" ]
+}
+
+rpc_torrent_count() {
+    socket="$1"
+    php_bin="/opt/bin/php8-cli"
+    [ -x "$php_bin" ] || php_bin="/opt/bin/php"
+    RTORRENT_SCGI_SOCKET="$socket" "$php_bin" "${RECOVERY_ROOT:-/share/Public/qnap_rtorrent}/lib/rtorrent-rpc.php" download_list 2>/dev/null \
+        | tr -d '[]" ' | tr ',' '\n' | sed '/^$/d' | wc -l | tr -d ' '
 }
