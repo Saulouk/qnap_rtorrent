@@ -9,6 +9,7 @@ log "=== Step 5: Configure ruTorrent ==="
 has_entware || die "Entware required"
 ensure_entware_path
 ensure_php_symlinks
+ensure_php_xml
 [ -f "${BACKUP_ROOT}/entware-scgi-test.ok" ] || log "WARN: run 04-minimal-native-test.sh first"
 
 # Locate ruTorrent web root

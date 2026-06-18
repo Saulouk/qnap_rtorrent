@@ -17,6 +17,7 @@ set -e
 . "$(dirname "$0")/../lib/common.sh"
 
 ensure_entware_path
+ensure_php_xml
 
 MODE="${1:-dry-run}"
 BATCH_SIZE="${2:-5}"
@@ -30,18 +31,28 @@ WORK="${BACKUP_ROOT}/apply-historic-work.$$"
 
 [ -f "$MAP" ] || die "Validated map not found: $MAP (run steps 14-15 first)"
 [ -f "$RPC" ] || die "Missing XMLRPC helper: $RPC"
-[ -S "$SCGI_SOCKET" ] || die "rtorrent SCGI socket missing: $SCGI_SOCKET"
+[ -d "$TORRENT_SOURCE" ] || die "Torrent source not found: $TORRENT_SOURCE"
 mkdir -p "$STAGING"
 
 php_bin="/opt/bin/php8-cli"
 [ -x "$php_bin" ] || php_bin="/opt/bin/php"
 
+if [ ! -S "$SCGI_SOCKET" ]; then
+  log "WARNING: SCGI socket missing. Restart stack first:"
+  log "  sh scripts/18-restart-stack.sh"
+  die "rtorrent SCGI socket missing: $SCGI_SOCKET"
+fi
+
 rpc() {
   RTORRENT_SCGI_SOCKET="$SCGI_SOCKET" "$php_bin" "$RPC" "$@"
 }
 
+rpc_err() {
+  RTORRENT_SCGI_SOCKET="$SCGI_SOCKET" "$php_bin" "$RPC" "$@" 2>&1
+}
+
 hash_lc() {
-  echo "$1" | tr 'A-F' 'a-f'
+  printf '%s' "$1" | tr 'A-F' 'a-f'
 }
 
 torrent_is_loaded() {
@@ -57,14 +68,22 @@ import_torrent_stopped() {
   fi
   staged="${STAGING}/${hash}.torrent"
   cp "$torrent_file" "$staged"
-  rpc load.normal "$staged" >/dev/null 2>&1 || rpc load "$staged" >/dev/null 2>&1 || return 1
-  sleep 1
-  torrent_is_loaded "$hash"
+  err="$(rpc_err load "$staged" 2>&1)" || {
+    log "  RPC load failed: $err"
+    return 1
+  }
+  sleep 2
+  if torrent_is_loaded "$hash"; then
+    return 0
+  fi
+  log "  torrent not visible after load (hash $hash)"
+  return 1
 }
 
 log "=== Step 16: Apply historic paths ==="
 log "Mode: $MODE"
 log "Map: $MAP"
+log "Torrent source: $TORRENT_SOURCE"
 log "Report: $REPORT"
 
 limit=999999
@@ -80,15 +99,11 @@ awk -F'\t' -v lim="$limit" 'NR==1 || ($6=="OK" && ++n<=lim)' "$MAP" > "$WORK"
   echo "hash	name	old_path	new_path	status	result"
 } > "$REPORT"
 
-applied=0
 tail -n +2 "$WORK" | while IFS="$(printf '\t')" read -r hash name old_path new_path exists_at status source via; do
   [ -n "$hash" ] || continue
   [ -n "$new_path" ] || continue
 
-  torrent_file="${TORRENT_SOURCE}/${hash}.torrent"
-  if [ ! -f "$torrent_file" ]; then
-    torrent_file="$(find "$TORRENT_SOURCE" -maxdepth 2 -type f -iname "${hash}.torrent" 2>/dev/null | head -1)"
-  fi
+  torrent_file="$(find_torrent_by_hash "$hash" "$TORRENT_SOURCE")"
 
   echo "PLAN: $name"
   echo "  -> $new_path"
@@ -98,7 +113,7 @@ tail -n +2 "$WORK" | while IFS="$(printf '\t')" read -r hash name old_path new_p
     continue
   fi
 
-  if [ ! -f "$torrent_file" ]; then
+  if [ -z "$torrent_file" ] || [ ! -f "$torrent_file" ]; then
     echo "$hash	$name	$old_path	$new_path	$status	NO_TORRENT_FILE" >> "$REPORT"
     log "SKIP (no .torrent): $hash"
     continue
@@ -113,12 +128,15 @@ tail -n +2 "$WORK" | while IFS="$(printf '\t')" read -r hash name old_path new_p
   fi
 
   rpc d.stop "$hash_lc" >/dev/null 2>&1 || true
-  rpc d.directory.set "$hash_lc" "$new_path" >/dev/null
+  if ! rpc d.directory.set "$hash_lc" "$new_path" >/dev/null 2>&1; then
+    echo "$hash	$name	$old_path	$new_path	$status	DIRECTORY_SET_FAILED" >> "$REPORT"
+    log "DIRECTORY SET FAILED: $name"
+    continue
+  fi
   rpc d.check_hash "$hash_lc" >/dev/null 2>&1 || true
 
   echo "$hash	$name	$old_path	$new_path	$status	APPLIED" >> "$REPORT"
   log "APPLIED: $name -> $new_path"
-  applied=$((applied + 1))
 done
 
 rm -f "$WORK"

@@ -92,3 +92,41 @@ ensure_php_symlinks() {
     [ -x /opt/bin/php8-cgi ] && ln -sfn php8-cgi /opt/bin/php-fcgi 2>/dev/null || true
     [ -x /opt/bin/php8-cli ] && ln -sfn php8-cli /opt/bin/php 2>/dev/null || true
 }
+
+ensure_php_xml() {
+    php_bin="/opt/bin/php8-cli"
+    [ -x "$php_bin" ] || php_bin="/opt/bin/php"
+    [ -x "$php_bin" ] || die "php8-cli not found"
+
+    if "$php_bin" -r 'exit(function_exists("simplexml_load_string") ? 0 : 1);' 2>/dev/null; then
+        return 0
+    fi
+
+    log "PHP simplexml missing — installing XML modules..."
+    /opt/bin/opkg update >/dev/null 2>&1 || true
+    for pkg in php8-mod-xml php8-xml php8-mod-simplexml; do
+        /opt/bin/opkg install "$pkg" 2>/dev/null || true
+    done
+
+    if ! "$php_bin" -r 'exit(function_exists("simplexml_load_string") ? 0 : 1);' 2>/dev/null; then
+        die "PHP XML extension required for rtorrent RPC. Run: /opt/bin/opkg install php8-mod-xml"
+    fi
+}
+
+find_torrent_by_hash() {
+    hash="$1"
+    dir="$2"
+    [ -n "$hash" ] && [ -d "$dir" ] || return 1
+
+    upper="$(printf '%s' "$hash" | tr 'a-f' 'A-F')"
+    lower="$(printf '%s' "$hash" | tr 'A-F' 'a-f')"
+    for variant in "$hash" "$upper" "$lower"; do
+        candidate="${dir}/${variant}.torrent"
+        if [ -f "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    find "$dir" -maxdepth 2 -type f -iname "${hash}.torrent" 2>/dev/null | head -1
+}

@@ -3,6 +3,10 @@
 // Usage: php lib/rtorrent-rpc.php <method> [string-param...]
 
 $socket = getenv('RTORRENT_SCGI_SOCKET') ?: '/share/Rdownload/entware/rtorrent.sock';
+if (!function_exists('simplexml_load_string')) {
+    fwrite(STDERR, "PHP XML extension required. On Entware run: /opt/bin/opkg install php8-mod-xml\n");
+    exit(2);
+}
 if ($argc < 2) {
     fwrite(STDERR, "Usage: php rtorrent-rpc.php <method> [params...]\n");
     exit(2);

@@ -8,6 +8,7 @@ log "=== Step 4: Minimal native rtorrent test ==="
 
 has_entware || die "Entware required"
 ensure_entware_path
+ensure_php_xml
 [ -x /opt/bin/rtorrent ] || die "Run 03-install-entware-rtorrent.sh first"
 
 install_pkg() {
