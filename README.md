@@ -46,7 +46,17 @@ Or run steps individually:
 
 ## Path mapping
 
-Edit `path-map.conf` before import if download paths changed between QTS 4 and 5.
+Edit `path-roots.conf` before validation if download paths changed between QTS 4 and 5.
+
+Typical QTS 4 layout:
+
+| Old path | New path |
+|----------|----------|
+| `/share/Rdownload/downloads/SN/Movies` | `/share/SN/Movies` |
+| `/share/SN Drive/Torrents/...` | unchanged |
+
+Only the `/share/Rdownload/downloads/SN` prefix is rewritten to `/share/SN`.
+Paths under `/share/SN Drive/` are not transformed.
 
 ## If import finds zero torrents
 
