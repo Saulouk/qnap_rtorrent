@@ -99,3 +99,44 @@ sh scripts/11-import-with-existing-paths.sh apply /share/CACHEDEV1_DATA/Rdownloa
 
 This preserves category subfolders because it sets the torrent directory to the
 parent folder where the matching file/directory already exists.
+
+## Historic path recovery (recommended)
+
+Recover original per-torrent save paths from old session/sidecar backups, then
+rewrite only the storage root to `/share/SN` while keeping subfolders like
+`Movies`, `Drama Series`, and `Software`.
+
+```sh
+chmod +x 12-run-historic-recovery.sh scripts/12-*.sh scripts/13-*.sh scripts/14-*.sh scripts/15-*.sh scripts/16-*.sh
+sh 12-run-historic-recovery.sh
+```
+
+Or step by step:
+
+| Step | Script | Purpose |
+|------|--------|---------|
+| 12 | `12-freeze-current.sh` | Stop active torrents; disable watch auto-import |
+| 13 | `13-find-path-sources.sh` | Inventory session.bak*, sidecars, settings, tar backups |
+| 14 | `14-extract-historic-paths.sh` | Bencode + strings extraction; filesystem fallback |
+| 15 | `15-validate-historic-paths.sh` | Transform roots via `path-roots.conf`; verify data exists |
+| 16 | `16-apply-historic-paths.sh` | `d.directory.set` + `d.check_hash` (batch then all) |
+
+Review `/share/Public/rtorrent-debug-backup/historic-path-map-validated-latest.tsv`
+before applying. Edit `path-roots.conf` if your old root differed from the defaults.
+
+```sh
+# Dry-run first 5 OK rows
+sh scripts/16-apply-historic-paths.sh
+
+# Apply small batch, verify in ruTorrent
+sh scripts/16-apply-historic-paths.sh apply 5
+
+# Apply all validated paths and remove wrong partial downloads
+sh scripts/16-apply-historic-paths.sh apply-all cleanup
+```
+
+To unfreeze watch imports after migration:
+
+```sh
+sh scripts/12-freeze-current.sh unfreeze
+```

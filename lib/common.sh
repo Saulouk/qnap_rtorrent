@@ -26,6 +26,10 @@ DTACH_SOCKET="${ENTWARE_ROOT}/rtorrent.dtach"
 SCGI_PORT=19010
 WEB_PORT=6010
 PATH_MAP="${RECOVERY_ROOT}/path-map.conf"
+PATH_ROOTS="${RECOVERY_ROOT}/path-roots.conf"
+HISTORIC_TORRENT_DIR="${HISTORIC_TORRENT_DIR:-/share/CACHEDEV1_DATA/Rdownload/session.bak.relocate-restored.1778458720}"
+HISTORIC_MAP="${BACKUP_ROOT}/historic-path-map-latest.tsv"
+HISTORIC_MAP_VALIDATED="${BACKUP_ROOT}/historic-path-map-validated-latest.tsv"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 die() { log "ERROR: $*"; exit 1; }
