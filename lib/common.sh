@@ -140,6 +140,9 @@ ensure_lighttpd_auth_modules() {
     has_entware || return 0
     ensure_entware_path
     /opt/bin/opkg update >/dev/null 2>&1 || true
+  for pkg in coreutils-stat coreutils-id; do
+        /opt/bin/opkg install "$pkg" 2>/dev/null || true
+    done
     for pkg in lighttpd-mod-auth lighttpd-mod-authn_file lighttpd-mod-setenv; do
         if /opt/bin/opkg list-installed 2>/dev/null | grep -q "^${pkg} "; then
             continue

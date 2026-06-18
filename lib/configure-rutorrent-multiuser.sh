@@ -102,7 +102,9 @@ cat > "${RUT_CONF_DIR}/users/${USER_JOSH_RPC}/config.php" <<PHPEOF
 ${DOWNLOAD_UI_BLOCK}
 PHPEOF
 
-apply_rutorrent_download_ui "$RUT_CONF_DIR"
+. "${RECOVERY_ROOT}/lib/configure-rutorrent-ui.sh"
+apply_rutorrent_ui_config "$RUT_WEB"
+restart_lighttpd_if_configured
 
 LIGHTTPD_BIN=""
 for b in /opt/sbin/lighttpd /opt/bin/lighttpd; do

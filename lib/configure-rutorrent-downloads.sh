@@ -1,29 +1,5 @@
 #!/bin/sh
-# ruTorrent download directory UI: topDirectory, _getdir plugin, rtorrent default path.
-
-write_rutorrent_plugins_ini() {
-    conf_dir="$1"
-    mkdir -p "$conf_dir"
-    cat > "${conf_dir}/plugins.ini" <<'INIEOF'
-; Folder picker for Add Torrent directory field
-[default]
-enabled = user-defined
-canChangeToolbar = yes
-canChangeMenu = yes
-canChangeOptions = yes
-canChangeTabs = yes
-canChangeColumns = yes
-canChangeStatusBar = yes
-canChangeCategory = yes
-canBeShutdowned = yes
-
-[_getdir]
-enabled = yes
-
-[_task]
-enabled = yes
-INIEOF
-}
+# ruTorrent download directory UI: topDirectory, rtorrent default path.
 
 rutorrent_php_externals_block() {
     cat <<'PHPEOF'
@@ -65,7 +41,6 @@ ensure_download_root_visible() {
 
 apply_rutorrent_download_ui() {
     rut_conf_dir="$1"
-    write_rutorrent_plugins_ini "$rut_conf_dir"
     ensure_download_root_visible
     patch_rtorrent_conf_download_root "$SAULOUK_RUT_CONF"
     patch_rtorrent_conf_download_root "$JOSH_RUT_CONF"
@@ -73,5 +48,5 @@ apply_rutorrent_download_ui() {
     rpc_set_default_directory "$SAULOUK_SOCKET"
     rpc_set_default_directory "$JOSH_SOCKET"
     rpc_set_default_directory "$SCGI_SOCKET"
-    log "Download UI root: ${DATA_ROOT_SLASH} (_getdir folder picker enabled)"
+    log "Download UI root: ${DATA_ROOT_SLASH}"
 }

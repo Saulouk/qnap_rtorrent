@@ -216,10 +216,12 @@ Restart both instances + WebUI:
 sh scripts/18-restart-stack.sh
 ```
 
-Set Add Torrent directory to `/share/SN/` with folder picker:
+Set Add Torrent directory to `/share/SN/` with folder picker and enable standard plugins:
 
 ```sh
-sh scripts/20-apply-download-ui.sh
+sh scripts/20-configure-rutorrent-ui.sh
 ```
+
+(`20-apply-download-ui.sh` is an alias for the same script.)
 
 Revert to single-user (manual): remove `/share/Rdownload/entware/.multiuser-enabled` and run `sh scripts/18-restart-stack.sh`.
