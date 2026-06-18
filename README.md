@@ -25,6 +25,7 @@ Or run steps individually:
 | 7 | `07-disable-old-qpkg.sh` | Stop broken rtorrent-Pro package |
 | optional | `08-find-torrent-data.sh` | Locate old `.torrent`/session files if import finds none |
 | optional | `09-retarget-by-existing-data.sh` | Point imported torrents at existing NAS data |
+| optional | `10-rewrite-directory-prefix.sh` | Replace temporary download root while preserving subfolders |
 
 ## Ports
 
@@ -75,3 +76,13 @@ sh scripts/09-retarget-by-existing-data.sh apply /share/CACHEDEV1_DATA/Rdownload
 
 The script calls `d.directory.set` and then `d.check_hash` so rtorrent verifies
 existing data instead of redownloading into the new Entware folder.
+
+If the imported torrents already have useful subpaths under the temporary
+Entware download root, rewrite only the prefix:
+
+```sh
+sh scripts/10-rewrite-directory-prefix.sh /share/SN
+sh scripts/10-rewrite-directory-prefix.sh apply /share/SN
+```
+
+Example: `/share/Rdownload/entware/downloads/Movies` becomes `/share/SN/Movies`.

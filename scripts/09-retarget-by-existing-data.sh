@@ -39,7 +39,7 @@ rpc() {
 }
 
 json_list_hashes() {
-    rpc download_list main 2>/dev/null || rpc download_list 2>/dev/null
+    rpc download_list "" 2>/dev/null || rpc download_list main 2>/dev/null || rpc download_list 2>/dev/null
 }
 
 find_existing_data() {
