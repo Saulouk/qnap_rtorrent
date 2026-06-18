@@ -12,6 +12,30 @@ cd qnap-rtorrent-recovery
 ./00-run-all.sh
 ```
 
+## Update scripts (wget, no git)
+
+```sh
+cd /share/Public
+rm -f qnap_rtorrent-main.tar.gz
+rm -rf qnap_rtorrent-main
+
+wget -O qnap_rtorrent-main.tar.gz https://github.com/Saulouk/qnap_rtorrent/archive/refs/heads/main.tar.gz
+tar -xzf qnap_rtorrent-main.tar.gz
+
+mv qnap_rtorrent "qnap_rtorrent.old.$(date +%s)"
+mv qnap_rtorrent-main qnap_rtorrent
+chmod +x qnap_rtorrent/scripts/*.sh qnap_rtorrent/lib/*.sh
+
+cd qnap_rtorrent
+```
+
+Or run the helper (after first copy):
+
+```sh
+sh /share/Public/qnap_rtorrent/scripts/00-refresh-from-github.sh
+cd /share/Public/qnap_rtorrent
+```
+
 Or run steps individually:
 
 | Step | Script | Purpose |
@@ -176,6 +200,12 @@ sh scripts/19-configure-two-users.sh users.credentials
 | josh | `/share/Rdownload/entware/users/josh/session` | Empty (new) |
 
 Login passwords are saved to `/share/Public/rtorrent-debug-backup/multiuser-credentials-latest.txt`.
+
+If step 19 stopped partway but Saulouk rtorrent is already healthy:
+
+```sh
+sh scripts/19-finish-multiuser-webui.sh
+```
 
 Restart both instances + WebUI:
 
