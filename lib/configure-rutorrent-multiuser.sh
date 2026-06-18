@@ -110,8 +110,12 @@ mimetype.assign = (
 server.modules = ( "mod_access", "mod_auth", "mod_authn_file", "mod_fastcgi", "mod_rewrite", "mod_scgi" )
 auth.backend = "htpasswd"
 auth.backend.htpasswd.userfile = "${HTPASSWD_FILE}"
-auth.require = (
-  "/rutorrent/" => "valid-user"
+auth.require = ( "/rutorrent/" =>
+  (
+    "method" => "basic",
+    "realm" => "ruTorrent",
+    "require" => "valid-user"
+  )
 )
 fastcgi.server = (
   ".php" => ((
