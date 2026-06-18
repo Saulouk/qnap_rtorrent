@@ -102,10 +102,6 @@ cat > "${RUT_CONF_DIR}/users/${USER_JOSH_RPC}/config.php" <<PHPEOF
 ${DOWNLOAD_UI_BLOCK}
 PHPEOF
 
-. "${RECOVERY_ROOT}/lib/configure-rutorrent-ui.sh"
-apply_rutorrent_ui_config "$RUT_WEB"
-restart_lighttpd_if_configured
-
 LIGHTTPD_BIN=""
 for b in /opt/sbin/lighttpd /opt/bin/lighttpd; do
     [ -x "$b" ] && LIGHTTPD_BIN="$b" && break
@@ -180,6 +176,9 @@ EOF
 . "${RECOVERY_ROOT}/lib/start-lighttpd.sh"
 start_lighttpd_stack "$LIGHTTPD_CONF" "$LIGHTTPD_BIN" "$PHP_CGI" || \
     die "lighttpd failed to start - inspect ${ENTWARE_LOGS}/lighttpd.out"
+
+. "${RECOVERY_ROOT}/lib/configure-rutorrent-ui.sh"
+apply_rutorrent_ui_config "$RUT_WEB"
 
 log "ruTorrent multi-user URL: http://${NAS_IP}:${WEB_PORT}/rutorrent/"
 log "${USER_SAULOUK} -> ${SAULOUK_RPC_MOUNT} (${SAULOUK_SOCKET})"
