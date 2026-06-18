@@ -145,7 +145,7 @@ else
     "$PHP_CGI" -b 127.0.0.1:9001 &
 fi
 
-"$LIGHTTPD_BIN" -f "$LIGHTTPD_CONF" -D &
+nohup "$LIGHTTPD_BIN" -f "$LIGHTTPD_CONF" -D > "${ENTWARE_LOGS}/lighttpd.out" 2>&1 &
 echo $! > "$LIGHTTPD_PID"
 sleep 3
 

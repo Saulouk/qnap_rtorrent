@@ -84,6 +84,11 @@ log "Mode: $([ "$APPLY" = 1 ] && echo apply || echo dry-run)"
 log "Search roots: $SEARCH_ROOTS"
 log "Report: $REPORT"
 
+{
+    echo "hash	name	current_directory	target_directory	status"
+} > "$REPORT"
+
+log "Querying rtorrent for imported torrent hashes..."
 hashes_json="$(json_list_hashes)"
 hashes="$(echo "$hashes_json" | tr -d '[]" ' | tr ',' '\n' | sed '/^$/d')"
 
@@ -98,10 +103,6 @@ if [ "$APPLY" = 1 ]; then
         rpc d.stop "$hash" >/dev/null 2>&1 || true
     done
 fi
-
-{
-    echo "hash	name	current_directory	target_directory	status"
-} > "$REPORT"
 
 matched=0
 ambiguous=0

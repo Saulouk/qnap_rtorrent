@@ -38,11 +38,39 @@ function rpc_call($socket, $method, $params) {
     fwrite($stream, $request);
 
     $response = '';
+    $expectedBodyLength = null;
+    $bodyStart = null;
     while (!feof($stream)) {
         $chunk = fread($stream, 8192);
         if ($chunk !== false) {
             $response .= $chunk;
         }
+
+        if ($bodyStart === null) {
+            $headerEnd = strpos($response, "\r\n\r\n");
+            $separatorLength = 4;
+            if ($headerEnd === false) {
+                $headerEnd = strpos($response, "\n\n");
+                $separatorLength = 2;
+            }
+
+            if ($headerEnd !== false) {
+                $headersText = substr($response, 0, $headerEnd);
+                $bodyStart = $headerEnd + $separatorLength;
+                if (preg_match('/Content-Length:\s*(\d+)/i', $headersText, $matches)) {
+                    $expectedBodyLength = (int)$matches[1];
+                }
+            }
+        }
+
+        if ($expectedBodyLength !== null && $bodyStart !== null) {
+            if (strlen($response) >= $bodyStart + $expectedBodyLength) {
+                break;
+            }
+        } elseif (strpos($response, '</methodResponse>') !== false) {
+            break;
+        }
+
         $meta = stream_get_meta_data($stream);
         if (!empty($meta['timed_out'])) {
             throw new RuntimeException('SCGI read timed out');
